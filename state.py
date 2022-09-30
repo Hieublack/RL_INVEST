@@ -131,7 +131,7 @@ def action_player(env_state, agent_player, temp_file, per_file):
     return played_move,temp_file, per_file
 
 def one_game(agent_player, list_fomula, temp_file, per_file):
-    print(list_fomula)
+    # print(list_fomula)
     env_state = reset(list_fomula)
     count_turn = 0
     while count_turn < ALL_QUARTER:
