@@ -1,5 +1,6 @@
 from pickle import GLOBAL
 from unittest import result
+from webbrowser import get
 import pandas as pd
 import math
 import numpy as np
@@ -49,8 +50,11 @@ def get_rank_not_invest():
             list_rank_ko_dau_tu.append(np.where(profit_q <= 1)[0][0]+1)
     return np.array(list_rank_ko_dau_tu)
 LIST_RANK_NOT_INVEST = get_rank_not_invest()
-LIST_RANK_CT1 = []
-LIST_RANK_CT2 = []
+LIST_RANK_CT1 = np.zeros(ALL_QUARTER)
+LIST_RANK_CT2 = np.zeros(ALL_QUARTER)
+LIST_PROFIT_CT1 = np.zeros(ALL_QUARTER)
+LIST_PROFIT_CT2 = np.zeros(ALL_QUARTER)
+
 
 def get_in4_rank_fomula(fomula):
     result_ =  np.nan_to_num(eval(fomula), nan=-math.inf, posinf=-math.inf, neginf=-math.inf)
@@ -67,26 +71,32 @@ def get_in4_rank_fomula(fomula):
 def get_in4_fomula(fomula):
     result_ =  np.nan_to_num(eval(fomula), nan=-math.inf, posinf=-math.inf, neginf=-math.inf)
     list_top_comp = []
+    list_profit = []
     for j in range(len(index_test)-1, 0, -1):
         rank_thuc = np.argsort(-result_[index_test[j-1]:index_test[j]]) + 1
+        list_profit.append(PROFIT[index_test[j-1]:index_test[j]][rank_thuc[0]])
         list_top_comp.append(rank_thuc[:TOP_COMP_PER_QUARTER])
-    return np.array(list_top_comp).flatten()
+    return np.array(list_top_comp).flatten(), np.array(list_profit)
 
 IN4_CT1_INDEX = 0
 IN4_CT2_INDEX = ALL_QUARTER*TOP_COMP_PER_QUARTER
 HISTORY_AGENT_INDEX= ALL_QUARTER*TOP_COMP_PER_QUARTER*2
-CURRENT_QUARTER_INDEX = ALL_QUARTER*TOP_COMP_PER_QUARTER*2 + ALL_QUARTER
+HISTORY_PROFIT = HISTORY_AGENT_INDEX + ALL_QUARTER
+CURRENT_QUARTER_INDEX = HISTORY_PROFIT + ALL_QUARTER
+
 P_IN4_CT1 = 0
 P_IN4_CT2 = 480
 
 def reset(list_fomula):
-    global LIST_RANK_CT1, LIST_RANK_CT2
+    global LIST_RANK_CT1, LIST_RANK_CT2, LIST_PROFIT_CT1, LIST_PROFIT_CT2
     '''
     Hàm này trả ra 2 công thức và list top5 comp qua từng quý của công thức và các thông tin cần thiết khác
     '''
     current_quarter = 0
-    history_agent = np.zeros(ALL_QUARTER)
-    env_state = np.concatenate((get_in4_fomula(list_fomula[0]), get_in4_fomula(list_fomula[1]), history_agent, np.array([current_quarter])))
+    history_agent = np.zeros(ALL_QUARTER*2)
+    LIST_RANK_CT1, LIST_PROFIT_CT1 = get_in4_fomula(list_fomula[0])
+    LIST_RANK_CT2, LIST_PROFIT_CT2 = get_in4_fomula(list_fomula[1])
+    env_state = np.concatenate((LIST_RANK_CT1, LIST_RANK_CT2, history_agent, np.array([current_quarter])))
     return env_state
 
 @nb.njit
@@ -104,15 +114,19 @@ def state_to_player(env_state):
 
 @nb.njit
 def step(action, env_state):
+    global LIST_RANK_CT1, LIST_RANK_CT2, LIST_PROFIT_CT1, LIST_PROFIT_CT2
     result_quarter = 0
     if action == 0:
         result_quarter = LIST_RANK_NOT_INVEST[int(env_state[CURRENT_QUARTER_INDEX])]
+        env_state[int(HISTORY_PROFIT+env_state[CURRENT_QUARTER_INDEX])] = 1
         # print('check', action, LIST_RANK_NOT_INVEST[int(env_state[CURRENT_QUARTER_INDEX])], 'quarter', int(env_state[CURRENT_QUARTER_INDEX]))
     elif action == 1:
         result_quarter = env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER)]
+        env_state[int(HISTORY_PROFIT+env_state[CURRENT_QUARTER_INDEX])] = LIST_PROFIT_CT1[int(env_state[CURRENT_QUARTER_INDEX])]
         # print('check', action, env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER)], 'quarter', int(env_state[CURRENT_QUARTER_INDEX]))
     else:
         result_quarter = env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER+IN4_CT2_INDEX)]
+        env_state[int(HISTORY_PROFIT+env_state[CURRENT_QUARTER_INDEX])] = LIST_PROFIT_CT2[int(env_state[CURRENT_QUARTER_INDEX])]
         # print('check', action, env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER)], 'quarter', int(env_state[CURRENT_QUARTER_INDEX]))
     if result_quarter == 0:
         print('toang',action)
@@ -121,7 +135,7 @@ def step(action, env_state):
     rank_3_action = np.sort(rank_3_action)
     top_action = np.where(rank_3_action == result_quarter)[0][0] + 1
     # print('quarter', int(env_state[CURRENT_QUARTER_INDEX]),'check', 1/top_action, 'action', action, 'topaction',rank_3_action)
-    env_state[int(HISTORY_AGENT_INDEX+env_state[CURRENT_QUARTER_INDEX])] = 1/top_action
+    env_state[int(HISTORY_AGENT_INDEX+env_state[CURRENT_QUARTER_INDEX])] = (4-top_action)/3
     env_state[CURRENT_QUARTER_INDEX] += 1     
     return env_state
 
@@ -139,6 +153,8 @@ def one_game(agent_player, list_fomula, temp_file, per_file):
         env_state = step(action, env_state)
         count_turn += 1
     all_result = env_state[HISTORY_AGENT_INDEX:HISTORY_AGENT_INDEX+ALL_QUARTER]
+    all_profit = env_state[HISTORY_PROFIT:HISTORY_PROFIT+ALL_QUARTER]
+    per_file = np.append(per_file, gmean(all_profit))
     result = gmean(all_result)
     return result, per_file
 
