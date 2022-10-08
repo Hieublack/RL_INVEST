@@ -24,7 +24,8 @@ for id in index_test[:-1]:
     s = data_full_load.iloc[id]
     s[1] = 1
     s[2] = 'NOT_INVEST'
-    s[4:] = np.full(len(data_full.columns) - 4, 1)
+    # s[4:] = np.full(len(data_full.columns) - 4, 1)
+    s[4:] = np.average(data_full.loc[id: , data_full.columns[4:]], axis=0)
     data_full = data_full.append(s)
 data_full = data_full.sort_values(by=['TIME', 'PROFIT'], ascending=[False, False], ignore_index=True)
 index_test = get_index_T(data_full)
