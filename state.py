@@ -1,5 +1,3 @@
-from glob import glob
-from tabnanny import check
 import pandas as pd
 import math
 import numpy as np
@@ -30,8 +28,9 @@ for id in index_test[:-1]:
     s[4:] = np.average(data_full.loc[id: , data_full.columns[4:]], axis=0)
     data_full = data_full.append(s)
 data_full = data_full.sort_values(by=['TIME', 'PROFIT'], ascending=[False, False], ignore_index=True)
-index_test = get_index_T(data_full)
-
+index_test = np.array(get_index_T(data_full))
+data_arr = np.array(data_full[data_full.columns[4:]]).T
+NUMBER_VARIABLE = len(data_arr)
 all_fomula = np.array(pd.read_csv('congthuc.csv')['fomula'])
 TOP_COMP_PER_QUARTER = 20
 NUMBER_QUARTER_HISTORY = 24
@@ -46,20 +45,23 @@ def get_variable(data_full):
     for i in range(4, len(list_column)):
         list_variable[i-4] = np.array(data_full[list_column[i]])
     [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z] = list_variable
+
+def save_data():
+    np.save('index_test.npy', index_test)
+    np.save('data.npy', data_arr)
+    np.save('list_rank_profit_not_invest.npy', LIST_RANK_NOT_INVEST)
+    np.save('list_company.npy', COMPANY)
+
 get_variable(data_full)
 
 def get_rank_not_invest():
     list_rank_ko_dau_tu = []
     for j in range(len(index_test)-1, 0, -1):
-        profit_q = PROFIT[index_test[j-1]:index_test[j]]
-        # n_comp = len(profit_q)
-        # if np.max(profit_q) <= 1:
-        #     list_rank_ko_dau_tu.append(1)
-        # elif np.min(profit_q) >= 1:
-        #     list_rank_ko_dau_tu.append(n_comp + 1)
-        # else:
-        list_rank_ko_dau_tu.append(np.where(profit_q == 1)[0][0]+1)
+        # profit_q = PROFIT[index_test[j-1]:index_test[j]]
+        COMP = COMPANY[index_test[j-1]:index_test[j]]
+        list_rank_ko_dau_tu.append(np.where(COMP == 'NOT_INVEST')[0][0]+1)
     return np.array(list_rank_ko_dau_tu)
+
 LIST_RANK_NOT_INVEST = get_rank_not_invest()
 LIST_RANK_NOT_INVEST_TEMP = np.zeros(ALL_QUARTER)
 LIST_RANK_CT1 = np.zeros(ALL_QUARTER)
@@ -70,13 +72,12 @@ LIST_PROFIT_CT1 = np.zeros(ALL_QUARTER)
 LIST_PROFIT_CT2 = np.zeros(ALL_QUARTER)
 
 
-def get_in4_rank_fomula(fomula):
-    result_ =  np.nan_to_num(eval(fomula), nan=-math.inf, posinf=-math.inf, neginf=-math.inf)
+def get_in4_rank_fomula(result_fomula):
     list_rank = []
     list_com = []
     for j in range(len(index_test)-1, 0, -1):
         COMP = COMPANY[index_test[j-1]:index_test[j]]
-        rank_thuc = np.argsort(-result_[index_test[j-1]:index_test[j]]) + 1
+        rank_thuc = np.argsort(-result_fomula[index_test[j-1]:index_test[j]]) + 1
         list_rank.append(rank_thuc[0])
         list_com.append(COMP[rank_thuc[0]-1])
     return list_rank, list_com
@@ -92,24 +93,28 @@ def get_in4_rank_fomula(fomula):
 #         list_top_comp.append(rank_thuc[:TOP_COMP_PER_QUARTER])
 #     return np.array(list_top_comp).flatten(), np.array(list_profit)
 
-def get_in4_fomula(fomula):
-    global LIST_RANK_NOT_INVEST_TEMP
-    result_ =  np.nan_to_num(eval(fomula), nan=-math.inf, posinf=-math.inf, neginf=-math.inf)
-    list_top_comp = []
-    list_rank_not_invest_ct = []
+@nb.njit
+def get_in4_fomula(result_fomula):
+    global LIST_RANK_NOT_INVEST, index_test
+    # result_ =  np.nan_to_num(eval(fomula), nan=-math.inf, posinf=-math.inf, neginf=-math.inf)
+    list_top_comp = np.array([-1])
+    list_rank_not_invest_ct = np.array([-1])
+    
     for j in range(len(index_test)-1, 0, -1):
-        top2 = heapq.nlargest(2,result_[index_test[j-1]:index_test[j]])         #lấy top 2 giá trị lớn nhất
-        if top2[0] == top2[1] or np.max(result_[index_test[j-1]:index_test[j]]) == np.min(result_[index_test[j-1]:index_test[j]]):
-            return np.zeros(1), 0
-        rank_thuc = np.argsort(-result_[index_test[j-1]:index_test[j]]) + 1
-        COMP = COMPANY[index_test[j-1]:index_test[j]]
-        id_not_invest = np.where(COMP== 'NOT_INVEST')[0][0]+1
-        
-        list_rank_not_invest_ct.append(np.where(rank_thuc == id_not_invest)[0][0]+1)
-
-        list_top_comp.append(rank_thuc[:TOP_COMP_PER_QUARTER])
-    LIST_RANK_NOT_INVEST_TEMP = np.array(list_rank_not_invest_ct)
-    return np.array(list_top_comp).flatten(), 1
+        top2 = heapq.nlargest(2,result_fomula[index_test[j-1]:index_test[j]])         #lấy top 2 giá trị lớn nhất
+        if top2[0] == top2[1] or np.max(result_fomula[index_test[j-1]:index_test[j]]) == np.min(result_fomula[index_test[j-1]:index_test[j]]):
+            return np.array([-1]), 0
+        rank_thuc = np.argsort(-result_fomula[index_test[j-1]:index_test[j]]) + 1
+        id_not_invest = LIST_RANK_NOT_INVEST[-j] 
+        if list_rank_not_invest_ct[0] == -1:
+            list_rank_not_invest_ct = np.array([np.where(rank_thuc == id_not_invest)[0][0]+1])
+            list_top_comp = rank_thuc[:TOP_COMP_PER_QUARTER]
+        else:
+            list_rank_not_invest_ct = np.append(list_rank_not_invest_ct, np.where(rank_thuc == id_not_invest)[0][0]+1)
+            list_top_comp = np.append(list_top_comp, rank_thuc[:TOP_COMP_PER_QUARTER])
+    LIST_RANK_NOT_INVEST_TEMP = list_rank_not_invest_ct
+    return list_top_comp, 1
+    # return np.array(list_top_comp).flatten(), 1
 
 IN4_CT1_INDEX = 0
 IN4_CT2_INDEX = ALL_QUARTER*TOP_COMP_PER_QUARTER
@@ -129,17 +134,19 @@ P_GMEAN_P2 = P_GMEAN_P1 + 1
 P_ID_NOT_INVEST_CT1 = P_GMEAN_P2 + 1
 P_ID_NOT_INVEST_CT2 = P_ID_NOT_INVEST_CT1 + 1
 
+save_data()
 
+# @nb.njit
 def reset():
-    global LIST_RANK_CT1, LIST_RANK_CT2, LIST_PROFIT_CT1, LIST_PROFIT_CT2, LIST_RANK_NOT_INVEST_CT1, LIST_RANK_NOT_INVEST_CT2
+    global data_arr, LIST_RANK_CT1, LIST_RANK_CT2, LIST_PROFIT_CT1, LIST_PROFIT_CT2, LIST_RANK_NOT_INVEST_CT1, LIST_RANK_NOT_INVEST_CT2
     '''
     Hàm này trả ra 2 công thức và list top20 comp qua từng quý của công thức và các thông tin cần thiết khác
     '''
     # list_fomula = []
     count_fomula = 0
     while count_fomula < 2:
-        fomula = create_fomula()
-        temp, check = get_in4_fomula(fomula)
+        result_fomula = create_fomula(data_arr)
+        temp, check = get_in4_fomula(result_fomula)
         # print('check getin4', len(temp), check)
         count_fomula += check
         if count_fomula == 1 and check == 1:
@@ -241,12 +248,60 @@ def check_victory(player_state):
         else: return 0
     else: return -1
 
-def create_fomula():
+@nb.njit()
+def create_fomula(data_arr):
+    power = np.random.randint(1, 10)
+    operand = np.random.randint(1, 10)
+    result_fomula = np.zeros(data_arr.shape[1])
+    # ct = []
+    for i in range(operand):
+        op = np.random.randint(2)
+        # ct.append(op)
+        numerator = np.random.randint(power, NUMBER_VARIABLE - 1 - power)
+        denominator = numerator - power
+        numer_var = np.random.randint(1, NUMBER_VARIABLE, numerator)
+        result_temp = np.zeros(data_arr.shape[1])+1
+        if denominator > 0:
+            all_var = np.arange(1,NUMBER_VARIABLE)
+            for id in range(len(all_var)):
+                if all_var[id] in numer_var:
+                    all_var[id] = 0
+            all_denom_var = all_var[all_var > 0]
+            if len(all_denom_var) < denominator:
+                all_denom_var = np.append(all_denom_var, np.random.choice(all_var, denominator - len(all_denom_var)))
+            denom_var = np.random.choice(all_denom_var, denominator)
+            denom_var = np.append(denom_var, np.zeros(numerator-denominator).astype(np.int64))
+            denom_var = denom_var.astype(np.int64)
+            # ct.append([numer_var, denom_var])
+            for idx in range(len(numer_var)):
+                num = data_arr[numer_var[idx]]
+                denom = data_arr[denom_var[idx]]
+                denom_zero = np.where(denom == 0)[0]
+                denom[denom_zero] = 1
+                num[denom_zero] = 1
+                result_temp =  result_temp*(num/denom)
+        else:
+            denom_var = np.zeros(numerator).astype(np.int64)
+            # ct.append([numer_var, denom_var])
+            for id in range(len(numer_var)):
+                num = data_arr[numer_var[id]]
+                denom = data_arr[denom_var[id]]
+                denom_zero = np.where(denom == 0)[0]
+                denom[denom_zero] = 1
+                num[denom_zero] = 1
+                result_temp =  result_temp*(num/denom)
+        if op == 1:
+            result_fomula = result_fomula + result_temp
+        else:
+            result_fomula = result_fomula - result_temp
+    return result_fomula
+
+def create_fomula_old():
     all_char = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
     all_char = 'BCDEFGHIJKLMNOPQRSTUVWXYZ'
-    power = random.randint(1, 10)
+    power = np.random.randint(1, 10)
     # print('bậc: ', power)
-    operand = random.randint(1, 10)
+    operand = np.random.randint(1, 10)
     # print('số toán hạng: ', operand)
     list_exp_child = []
     ct = '('
@@ -282,7 +337,7 @@ def one_game(list_player, temp_file, per_file):
     return result, per_file
 
 def normal_main(agent_player, times, per_file):
-    global data_full
+    global data_full, data_arr
     count = np.zeros(2)
     # all_id_fomula = np.arange(len(all_fomula))
     list_player = [agent_player, player_random]
