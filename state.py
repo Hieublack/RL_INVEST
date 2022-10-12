@@ -7,7 +7,6 @@ import numba as nb
 import random
 
 
-
 data_full_load = pd.read_csv('data_test.csv')
 data_full_load = data_full_load.sort_values(by=['TIME', 'PROFIT'], ascending=[False, False], ignore_index=True)
 def get_index_T(data_full):
@@ -93,8 +92,8 @@ def get_in4_rank_fomula(result_fomula):
 #         list_top_comp.append(rank_thuc[:TOP_COMP_PER_QUARTER])
 #     return np.array(list_top_comp).flatten(), np.array(list_profit)
 
-@nb.njit
-def get_in4_fomula(result_fomula):
+@nb.njit()
+def get_in4_fomula(result_fomula, list_rank_not_invest_temp):
     global LIST_RANK_NOT_INVEST, index_test
     # result_ =  np.nan_to_num(eval(fomula), nan=-math.inf, posinf=-math.inf, neginf=-math.inf)
     list_top_comp = np.array([-1])
@@ -103,7 +102,8 @@ def get_in4_fomula(result_fomula):
     for j in range(len(index_test)-1, 0, -1):
         top2 = heapq.nlargest(2,result_fomula[index_test[j-1]:index_test[j]])         #lấy top 2 giá trị lớn nhất
         if top2[0] == top2[1] or np.max(result_fomula[index_test[j-1]:index_test[j]]) == np.min(result_fomula[index_test[j-1]:index_test[j]]):
-            return np.array([-1]), 0
+            # print('toang cong thuc', top2, np.max(result_fomula[index_test[j-1]:index_test[j]]), np.min(result_fomula[index_test[j-1]:index_test[j]]))
+            return np.array([-1]), np.array([-1]), 0
         rank_thuc = np.argsort(-result_fomula[index_test[j-1]:index_test[j]]) + 1
         id_not_invest = LIST_RANK_NOT_INVEST[-j] 
         if list_rank_not_invest_ct[0] == -1:
@@ -112,8 +112,8 @@ def get_in4_fomula(result_fomula):
         else:
             list_rank_not_invest_ct = np.append(list_rank_not_invest_ct, np.where(rank_thuc == id_not_invest)[0][0]+1)
             list_top_comp = np.append(list_top_comp, rank_thuc[:TOP_COMP_PER_QUARTER])
-    LIST_RANK_NOT_INVEST_TEMP = list_rank_not_invest_ct
-    return list_top_comp, 1
+    list_rank_not_invest_temp = list_rank_not_invest_ct
+    return list_top_comp, list_rank_not_invest_temp, 1
     # return np.array(list_top_comp).flatten(), 1
 
 IN4_CT1_INDEX = 0
@@ -136,9 +136,8 @@ P_ID_NOT_INVEST_CT2 = P_ID_NOT_INVEST_CT1 + 1
 
 save_data()
 
-# @nb.njit
 def reset():
-    global data_arr, LIST_RANK_CT1, LIST_RANK_CT2, LIST_PROFIT_CT1, LIST_PROFIT_CT2, LIST_RANK_NOT_INVEST_CT1, LIST_RANK_NOT_INVEST_CT2
+    global LIST_RANK_CT1, LIST_RANK_CT2, LIST_PROFIT_CT1, LIST_PROFIT_CT2, LIST_RANK_NOT_INVEST_CT1, LIST_RANK_NOT_INVEST_CT2, LIST_RANK_NOT_INVEST_TEMP
     '''
     Hàm này trả ra 2 công thức và list top20 comp qua từng quý của công thức và các thông tin cần thiết khác
     '''
@@ -146,8 +145,9 @@ def reset():
     count_fomula = 0
     while count_fomula < 2:
         result_fomula = create_fomula(data_arr)
-        temp, check = get_in4_fomula(result_fomula)
-        # print('check getin4', len(temp), check)
+        temp, LIST_RANK_NOT_INVEST_TEMP, check = get_in4_fomula(result_fomula, LIST_RANK_NOT_INVEST_TEMP)
+        # print('check getin4', len(temp), check, result_fomula[:10], temp[:10])
+        # print('TEMP, ', LIST_RANK_NOT_INVEST_TEMP[:10])
         count_fomula += check
         if count_fomula == 1 and check == 1:
             LIST_RANK_CT1 = temp.copy()
@@ -364,3 +364,5 @@ def player_random(player_state, temp_file, per_file):
     action = int(np.random.choice(list_action))
     # check = check_victory(player_state)
     return action, temp_file, per_file
+
+
