@@ -213,8 +213,13 @@ def state_to_player(env_state):
     if env_state[CURRENT_QUARTER_INDEX] != 0:
         history_ct1 = env_state[max(IN4_CT1_INDEX, TOP_COMP_PER_QUARTER*(env_state[CURRENT_QUARTER_INDEX]-24)):int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER)]
         history_ct2 = env_state[max(IN4_CT2_INDEX, TOP_COMP_PER_QUARTER*(env_state[CURRENT_QUARTER_INDEX]-24)+IN4_CT2_INDEX):int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER)+IN4_CT2_INDEX]
-        player_state[P_IN4_CT1:P_IN4_CT1+len(history_ct1)] = history_ct1
-        player_state[P_IN4_CT2:P_IN4_CT2+len(history_ct2)] = history_ct2
+        len_bonus = int(TOP_COMP_PER_QUARTER * (NUMBER_QUARTER_HISTORY - env_state[CURRENT_QUARTER_INDEX]))
+        if len_bonus > 0:
+            a = np.zeros(len_bonus)
+            history_ct1 = np.append(a, history_ct1)
+            history_ct2 = np.append(a, history_ct2)
+        player_state[P_IN4_CT1:P_IN4_CT2] = history_ct1
+        player_state[P_IN4_CT2:P_GMEAN_P1] = history_ct2
     agent_history = env_state[HISTORY_AGENT_INDEX : HISTORY_AGENT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
     sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX : HISTORY_SYS_BOT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
     if env_state[CHECK_END_INDEX] == 1:
@@ -228,6 +233,7 @@ def state_to_player(env_state):
 
 @nb.njit()
 def step(action, env_state, ALL_IN4_SYS):
+    # print('action step: ', action)
     id_action = env_state[ID_ACTION_INDEX]
     result_quarter = 0
     if action == 0:
@@ -263,6 +269,8 @@ def action_player(env_state, list_player, temp_file, per_file):
     player_state = state_to_player(env_state)
     current_player = int(env_state[ID_ACTION_INDEX])
     played_move,temp_file,per_file = list_player[current_player](player_state, temp_file, per_file)
+    if played_move not in [0, 1, 2]:
+        raise Exception('Action false')
     return played_move,temp_file, per_file
     
 @nb.njit()
@@ -328,3 +336,14 @@ def player_random(player_state, temp_file, per_file):
     # check = check_victory(player_state)
     return action, temp_file, per_file
 
+def player_input(player_state, temp_file, per_file):
+    list_action = np.array([0,1,2])
+    print('Xếp hạng giá trị hành động không đầu tư của 2 công thức: ', player_state[P_ID_NOT_INVEST_CT1], player_state[P_ID_NOT_INVEST_CT2])
+    print('Xếp hạng lợi nhuận 20 công ty hàng đầu của CT1 tại quý trước: ', player_state[P_IN4_CT2-TOP_COMP_PER_QUARTER : P_IN4_CT2])
+    print('Xếp hạng lợi nhuận 20 công ty hàng đầu của CT2 tại quý trước:: ', player_state[P_GMEAN_P1-TOP_COMP_PER_QUARTER : P_GMEAN_P1])
+    action = int(input('Nhập action của bạn(0 là ko đầu tư, 1 là theo CT1, 2 là theo CT2): ',) )
+    print(f'Người chơi action {action}')
+    # print('check: ', player_state[P_ID_NOT_INVEST_CT1], player_state[P_ID_NOT_INVEST_CT2])
+    check = check_victory(player_state)
+
+    return action, temp_file, per_file
