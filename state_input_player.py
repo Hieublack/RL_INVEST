@@ -105,6 +105,7 @@ CURRENT_QUARTER_INDEX = ID_NOT_INVEST_CT2 + 1
 ID_ACTION_INDEX = CURRENT_QUARTER_INDEX + 1
 CHECK_END_INDEX = ID_ACTION_INDEX + 1
 NUMBER_COMP_INDEX = CHECK_END_INDEX + 1
+LEVEL_RATIO_INDEX = NUMBER_COMP_INDEX + 1
 
 P_IN4_CT1 = 0
 P_IN4_CT2 = P_IN4_CT1 + TOP_COMP_PER_QUARTER*NUMBER_QUARTER_HISTORY
@@ -113,6 +114,8 @@ P_GMEAN_P2 = P_GMEAN_P1 + 1
 P_ID_NOT_INVEST_CT1 = P_GMEAN_P2 + 1
 P_ID_NOT_INVEST_CT2 = P_ID_NOT_INVEST_CT1 + 1
 P_NUMBER_COMP_INDEX = P_ID_NOT_INVEST_CT2 + 1
+P_CURRENT_QUARTER_INDEX = P_NUMBER_COMP_INDEX + 1
+P_LEVEL_RATIO_INDEX = P_CURRENT_QUARTER_INDEX + 1
 
 # @nb.njit()
 def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
@@ -123,18 +126,25 @@ def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
     LIST_RANK_CT1 = np.zeros(ALL_QUARTER)
     LIST_RANK_CT2 = np.zeros(ALL_QUARTER)
     # list_fomula = []
+    # result_fomula = np.zeros(data_arr.shape[1])
     count_fomula = 0
     while count_fomula < 2:
         result_fomula = create_fomula(data_arr)
         LIST_RANK_NOT_INVEST_TEMP = np.zeros(ALL_QUARTER)
         temp, LIST_RANK_NOT_INVEST_TEMP, check = get_in4_fomula(result_fomula, LIST_RANK_NOT_INVEST_TEMP)
+        # print('check getin4', len(temp), check, result_fomula[:10], temp[:10])
+        # print('TEMP, ', LIST_RANK_NOT_INVEST_TEMP[:10])
         count_fomula += check
         if count_fomula == 1 and check == 1:
             LIST_RANK_CT1 = temp.copy()
+            # ALL_IN4_SYS[1] = temp.copy()
+            # LIST_RANK_NOT_INVEST_CT1 = LIST_RANK_NOT_INVEST_TEMP.copy()
             ALL_IN4_SYS[1] = LIST_RANK_NOT_INVEST_TEMP.copy() 
             # list_fomula.append(fomula)
         elif count_fomula == 2 and check == 1:
             LIST_RANK_CT2 = temp.copy()
+            # ALL_IN4_SYS[3] = temp.copy()
+            # LIST_RANK_NOT_INVEST_CT2 = LIST_RANK_NOT_INVEST_TEMP.copy()
             ALL_IN4_SYS[2] = LIST_RANK_NOT_INVEST_TEMP.copy() 
             # list_fomula.append(fomula)
 
@@ -145,9 +155,10 @@ def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
     check_end_game = 0
     history_agent = np.zeros(ALL_QUARTER*3)
     number_comp = LIST_ALL_COMP_PER_QUARTER[0]
+    level_ratio = 0
     # LIST_RANK_CT1, LIST_PROFIT_CT1 = get_in4_fomula(list_fomula[0])
     # LIST_RANK_CT2, LIST_PROFIT_CT2 = get_in4_fomula(list_fomula[1])
-    env_state = np.concatenate((LIST_RANK_CT1, LIST_RANK_CT2, history_agent, np.array([id_not_invest_ct1, id_not_invest_ct2, current_quarter, id_action, check_end_game, number_comp])))
+    env_state = np.concatenate((LIST_RANK_CT1, LIST_RANK_CT2, history_agent, np.array([id_not_invest_ct1, id_not_invest_ct2, current_quarter, id_action, check_end_game, number_comp, level_ratio])))
     return env_state, ALL_IN4_SYS
 
 @nb.njit()
@@ -204,7 +215,7 @@ def state_to_player(env_state):
     Hàm này trả ra lịch sử kết quả của 2 công thức trong các quý trước đó
     '''
     id_action = env_state[ID_ACTION_INDEX]
-    player_state = np.zeros(2*NUMBER_QUARTER_HISTORY*TOP_COMP_PER_QUARTER + 5)
+    player_state = np.zeros(2*NUMBER_QUARTER_HISTORY*TOP_COMP_PER_QUARTER + 7)
     player_state[P_ID_NOT_INVEST_CT1] = env_state[ID_NOT_INVEST_CT1]
     player_state[P_ID_NOT_INVEST_CT2] = env_state[ID_NOT_INVEST_CT2]
     if env_state[CURRENT_QUARTER_INDEX] != 0:
@@ -226,6 +237,8 @@ def state_to_player(env_state):
         else:
             player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(sys_bot_history)))
             player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(agent_history)))
+    player_state[P_CURRENT_QUARTER_INDEX] = env_state[CURRENT_QUARTER_INDEX]
+    player_state[P_LEVEL_RATIO_INDEX] = env_state[LEVEL_RATIO_INDEX]
     player_state[P_NUMBER_COMP_INDEX] = env_state[NUMBER_COMP_INDEX]
     return player_state
 
@@ -304,7 +317,7 @@ def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_CO
     return result, per_file
 
 def normal_main(agent_player, times, per_file):
-    global data_full, data_arr, LIST_ALL_COMP_PER_QUARTER
+    global data_full, data_arr
     count = np.zeros(2)
     # all_id_fomula = np.arange(len(all_fomula))
     list_player = [agent_player, player_random]
@@ -314,7 +327,6 @@ def normal_main(agent_player, times, per_file):
         LIST_ALL_COMP_PER_QUARTER.append(index_test[j] - index_test[j-1])
     LIST_ALL_COMP_PER_QUARTER.append(LIST_ALL_COMP_PER_QUARTER[-1])
     LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
-
     for van in range(times):
         temp_file = [[0],[0]]
         # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
@@ -329,10 +341,9 @@ def normal_main(agent_player, times, per_file):
 def player_random1(player_state, temp_file, per_file):
     list_action = np.array([0,1,2])
     action = int(np.random.choice(list_action))
-    print('check: ', player_state[P_ID_NOT_INVEST_CT1], player_state[P_ID_NOT_INVEST_CT2], player_state[P_NUMBER_COMP_INDEX])
+    # print('check: ', player_state[P_ID_NOT_INVEST_CT1], player_state[P_ID_NOT_INVEST_CT2])
     check = check_victory(player_state)
-    if check == 1:
-        print(player_state[-20:])
+
     return action, temp_file, per_file
 
 def player_random(player_state, temp_file, per_file):
@@ -341,15 +352,154 @@ def player_random(player_state, temp_file, per_file):
     # check = check_victory(player_state)
     return action, temp_file, per_file
 
+def player_input(player_state, temp_file, per_file):
+    # list_action = np.array([0,1,2])
+    print(f'Tổng số công ty trong quý hiện tại: {player_state[P_NUMBER_COMP_INDEX]}')
+    print(f'Level của trận đấu : {player_state[P_LEVEL_RATIO_INDEX]}')
+    print('Xếp hạng giá trị hành động không đầu tư của 2 công thức: ', player_state[P_ID_NOT_INVEST_CT1], player_state[P_ID_NOT_INVEST_CT2])
+    print('Xếp hạng lợi nhuận 20 công ty hàng đầu của CT1 tại quý trước: ', player_state[P_IN4_CT2-TOP_COMP_PER_QUARTER : P_IN4_CT2])
+    print('Xếp hạng lợi nhuận 20 công ty hàng đầu của CT2 tại quý trước:: ', player_state[P_GMEAN_P1-TOP_COMP_PER_QUARTER : P_GMEAN_P1])
+
+    action = int(input('Nhập action của bạn(0 là ko đầu tư, 1 là theo CT1, 2 là theo CT2): ',) )
+    print(f'Người chơi action {action}')
+    # print('check: ', player_state[P_ID_NOT_INVEST_CT1], player_state[P_ID_NOT_INVEST_CT2])
+    check = check_victory_level(player_state)
+    if check != -1:
+        if check == 1:
+            print(f'Thắng: {player_state[P_GMEAN_P1]}')
+        else:
+            print(f'Thua: {player_state[P_GMEAN_P1]}')
+
+    return action, temp_file, per_file
 
 
+@nb.njit()
+def check_winner_level(env_state):
+    agent_history = env_state[HISTORY_AGENT_INDEX : HISTORY_AGENT_INDEX+ALL_QUARTER]
+    sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX : HISTORY_SYS_BOT_INDEX+ALL_QUARTER]
+    np.exp(np.mean(np.log(sys_bot_history)))
+    level_ratio = env_state[LEVEL_RATIO_INDEX]
+    if np.exp(np.mean(np.log(agent_history))) > level_ratio: return 0
+    else: return 1
+
+@nb.njit()
+def check_victory_level(player_state):
+    if not (player_state[P_GMEAN_P1] == player_state[P_GMEAN_P2] and player_state[P_GMEAN_P2] == 0):
+        if player_state[P_GMEAN_P1] > player_state[P_LEVEL_RATIO_INDEX]: return 1
+        else: return 0
+    else: return -1
+
+def one_game_level(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LEVEL, LIST_ALL_COMP_PER_QUARTER):
+    ALL_IN4_SYS = np.array([LIST_RANK_NOT_INVEST, np.zeros(ALL_QUARTER), np.zeros(ALL_QUARTER)])
+    env_state, ALL_IN4_SYS = reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER)
+    env_state[LEVEL_RATIO_INDEX] = LEVEL
+    count_turn = 0
+    while count_turn < ALL_QUARTER*2:
+        action, temp_file, per_file = action_player(env_state, list_player, temp_file, per_file)
+        env_state = step(action, env_state, ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER)
+        count_turn += 1
+    env_state[CHECK_END_INDEX] = 1
+    for id_player in range(len(list_player)):
+        action, temp_file, per_file = action_player(env_state,list_player,temp_file, per_file)
+        env_state[ID_ACTION_INDEX] = (env_state[ID_ACTION_INDEX] + 1)%len(list_player)
+    result = check_winner_level(env_state)
+    # print(env_state[HISTORY_AGENT_INDEX:])
+    return result, per_file
+
+ALL_LEVEL = np.array([0.6, 0.7, 0.8, 0.9])
 
 
+def normal_main_level1(agent_player, times, per_file):
+    global data_full, data_arr
+    count = np.zeros(2)
+    # all_id_fomula = np.arange(len(all_fomula))
+    list_player = [agent_player, player_random]
+    LIST_RANK_NOT_INVEST = get_rank_not_invest()
+    LEVEL = 0.6
+    LIST_ALL_COMP_PER_QUARTER = []
+    for j in range(len(index_test)-1, 0, -1):
+        LIST_ALL_COMP_PER_QUARTER.append(index_test[j] - index_test[j-1])
+    LIST_ALL_COMP_PER_QUARTER.append(LIST_ALL_COMP_PER_QUARTER[-1])
+    LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
+    for van in range(times):
+        temp_file = [[0],[0]]
+        # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
+        # list_fomula = all_fomula[shuffle]
+        winner, file_per = one_game_level(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LEVEL, LIST_ALL_COMP_PER_QUARTER)
+        if winner == 0:
+            count[0] += 1
+        else:
+            count[1] += 1
+    return count, file_per
 
+def normal_main_level2(agent_player, times, per_file):
+    global data_full, data_arr
+    count = np.zeros(2)
+    # all_id_fomula = np.arange(len(all_fomula))
+    list_player = [agent_player, player_random]
+    LIST_RANK_NOT_INVEST = get_rank_not_invest()
+    LEVEL = 0.7
+    LIST_ALL_COMP_PER_QUARTER = []
+    for j in range(len(index_test)-1, 0, -1):
+        LIST_ALL_COMP_PER_QUARTER.append(index_test[j] - index_test[j-1])
+    LIST_ALL_COMP_PER_QUARTER.append(LIST_ALL_COMP_PER_QUARTER[-1])
+    LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
+    for van in range(times):
+        temp_file = [[0],[0]]
+        # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
+        # list_fomula = all_fomula[shuffle]
+        winner, file_per = one_game_level(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LEVEL, LIST_ALL_COMP_PER_QUARTER)
+        if winner == 0:
+            count[0] += 1
+        else:
+            count[1] += 1
+    return count, file_per
 
+def normal_main_level3(agent_player, times, per_file):
+    global data_full, data_arr
+    count = np.zeros(2)
+    # all_id_fomula = np.arange(len(all_fomula))
+    list_player = [agent_player, player_random]
+    LIST_RANK_NOT_INVEST = get_rank_not_invest()
+    LEVEL = 0.8
+    LIST_ALL_COMP_PER_QUARTER = []
+    for j in range(len(index_test)-1, 0, -1):
+        LIST_ALL_COMP_PER_QUARTER.append(index_test[j] - index_test[j-1])
+    LIST_ALL_COMP_PER_QUARTER.append(LIST_ALL_COMP_PER_QUARTER[-1])
+    LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
+    for van in range(times):
+        temp_file = [[0],[0]]
+        # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
+        # list_fomula = all_fomula[shuffle]
+        winner, file_per = one_game_level(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LEVEL, LIST_ALL_COMP_PER_QUARTER)
+        if winner == 0:
+            count[0] += 1
+        else:
+            count[1] += 1
+    return count, file_per
 
-
-
+def normal_main_level4(agent_player, times, per_file):
+    global data_full, data_arr
+    count = np.zeros(2)
+    # all_id_fomula = np.arange(len(all_fomula))
+    list_player = [agent_player, player_random]
+    LIST_RANK_NOT_INVEST = get_rank_not_invest()
+    LEVEL = 0.9
+    LIST_ALL_COMP_PER_QUARTER = []
+    for j in range(len(index_test)-1, 0, -1):
+        LIST_ALL_COMP_PER_QUARTER.append(index_test[j] - index_test[j-1])
+    LIST_ALL_COMP_PER_QUARTER.append(LIST_ALL_COMP_PER_QUARTER[-1])
+    LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
+    for van in range(times):
+        temp_file = [[0],[0]]
+        # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
+        # list_fomula = all_fomula[shuffle]
+        winner, file_per = one_game_level(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LEVEL, LIST_ALL_COMP_PER_QUARTER)
+        if winner == 0:
+            count[0] += 1
+        else:
+            count[1] += 1
+    return count, file_per
 
 
 
