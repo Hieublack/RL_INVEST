@@ -53,6 +53,7 @@ ALL_QUARTER = len(np.unique(data_full['TIME']))
 LIST_ALL_COMP_PER_QUARTER = []
 for j in range(len(index_test)-1, 0, -1):
     LIST_ALL_COMP_PER_QUARTER.append(index_test[j] - index_test[j-1])
+LIST_ALL_COMP_PER_QUARTER.append(LIST_ALL_COMP_PER_QUARTER[-1])
 LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
 
 def get_rank_not_invest():
@@ -107,6 +108,7 @@ ID_NOT_INVEST_CT2 = ID_NOT_INVEST_CT1 + 1
 CURRENT_QUARTER_INDEX = ID_NOT_INVEST_CT2 + 1
 ID_ACTION_INDEX = CURRENT_QUARTER_INDEX + 1
 CHECK_END_INDEX = ID_ACTION_INDEX + 1
+LEVEL_RATIO_INDEX = CHECK_END_INDEX + 1
 
 P_IN4_CT1 = 0
 P_IN4_CT2 = P_IN4_CT1 + TOP_COMP_PER_QUARTER*NUMBER_QUARTER_HISTORY
@@ -153,9 +155,10 @@ def reset(ALL_IN4_SYS):
     id_action = 0
     check_end_game = 0
     history_agent = np.zeros(ALL_QUARTER*3)
+    level_ratio = 0
     # LIST_RANK_CT1, LIST_PROFIT_CT1 = get_in4_fomula(list_fomula[0])
     # LIST_RANK_CT2, LIST_PROFIT_CT2 = get_in4_fomula(list_fomula[1])
-    env_state = np.concatenate((LIST_RANK_CT1, LIST_RANK_CT2, history_agent, np.array([id_not_invest_ct1, id_not_invest_ct2, current_quarter, id_action, check_end_game])))
+    env_state = np.concatenate((LIST_RANK_CT1, LIST_RANK_CT2, history_agent, np.array([id_not_invest_ct1, id_not_invest_ct2, current_quarter, id_action, check_end_game, level_ratio])))
     # print(ALL_IN4_SYS)
     return env_state, ALL_IN4_SYS
 
@@ -356,3 +359,58 @@ def player_input(player_state, temp_file, per_file):
     check = check_victory(player_state)
 
     return action, temp_file, per_file
+
+ALL_LEVEL = np.array([0.6, 0.7, 0.8, 0.9])
+
+def one_game_level(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LEVEL):
+    ALL_IN4_SYS = np.array([LIST_RANK_NOT_INVEST, np.zeros(ALL_QUARTER), np.zeros(ALL_QUARTER)])
+    env_state, ALL_IN4_SYS = reset(ALL_IN4_SYS)
+    env_state[LEVEL_RATIO_INDEX] = LEVEL
+    count_turn = 0
+    while count_turn < ALL_QUARTER*2:
+        action, temp_file, per_file = action_player(env_state, list_player, temp_file, per_file)
+        env_state = step(action, env_state, ALL_IN4_SYS)
+        count_turn += 1
+    env_state[CHECK_END_INDEX] = 1
+    for id_player in range(len(list_player)):
+        action, temp_file, per_file = action_player(env_state,list_player,temp_file, per_file)
+        env_state[ID_ACTION_INDEX] = (env_state[ID_ACTION_INDEX] + 1)%len(list_player)
+    result = check_winner(env_state)
+    # print(env_state[HISTORY_AGENT_INDEX:])
+    return result, per_file
+
+def normal_main_level(agent_player, times, per_file):
+    global data_full, data_arr
+    count = np.zeros(2)
+    # all_id_fomula = np.arange(len(all_fomula))
+    list_player = [agent_player, player_random]
+    LIST_RANK_NOT_INVEST = get_rank_not_invest()
+
+    for van in range(times):
+        temp_file = [[0],[0]]
+        # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
+        # list_fomula = all_fomula[shuffle]
+        winner, file_per = one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST)
+        if winner == 0:
+            count[0] += 1
+        else:
+            count[1] += 1
+    return count, file_per
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
