@@ -50,6 +50,11 @@ TOP_COMP_PER_QUARTER = 20
 NUMBER_QUARTER_HISTORY = 24
 ALL_QUARTER = len(np.unique(data_full['TIME']))
 
+LIST_ALL_COMP_PER_QUARTER = []
+for j in range(len(index_test)-1, 0, -1):
+    LIST_ALL_COMP_PER_QUARTER.append(index_test[j] - index_test[j-1])
+LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
+
 def get_rank_not_invest():
     list_rank_ko_dau_tu = []
     for j in range(len(index_test)-1, 0, -1):
@@ -109,6 +114,7 @@ P_GMEAN_P1 = P_IN4_CT2 + TOP_COMP_PER_QUARTER*NUMBER_QUARTER_HISTORY
 P_GMEAN_P2 = P_GMEAN_P1 + 1
 P_ID_NOT_INVEST_CT1 = P_GMEAN_P2 + 1
 P_ID_NOT_INVEST_CT2 = P_ID_NOT_INVEST_CT1 + 1
+P_CURRENT_QUARTER_INDEX = P_ID_NOT_INVEST_CT2 + 1
 
 # @nb.njit()
 def reset(ALL_IN4_SYS):
@@ -207,7 +213,7 @@ def state_to_player(env_state):
     Hàm này trả ra lịch sử kết quả của 2 công thức trong các quý trước đó
     '''
     id_action = env_state[ID_ACTION_INDEX]
-    player_state = np.zeros(2*NUMBER_QUARTER_HISTORY*TOP_COMP_PER_QUARTER + 4)
+    player_state = np.zeros(2*NUMBER_QUARTER_HISTORY*TOP_COMP_PER_QUARTER + 5)
     player_state[P_ID_NOT_INVEST_CT1] = env_state[ID_NOT_INVEST_CT1]
     player_state[P_ID_NOT_INVEST_CT2] = env_state[ID_NOT_INVEST_CT2]
     if env_state[CURRENT_QUARTER_INDEX] != 0:
@@ -229,6 +235,7 @@ def state_to_player(env_state):
         else:
             player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(sys_bot_history)))
             player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(agent_history)))
+    player_state[P_CURRENT_QUARTER_INDEX] = env_state[CURRENT_QUARTER_INDEX]
     return player_state
 
 @nb.njit()
@@ -337,7 +344,9 @@ def player_random(player_state, temp_file, per_file):
     return action, temp_file, per_file
 
 def player_input(player_state, temp_file, per_file):
+    global LIST_ALL_COMP_PER_QUARTER
     list_action = np.array([0,1,2])
+    print(f'Tổng số công ty trong quý hiện tại: {LIST_ALL_COMP_PER_QUARTER[int(player_state[P_CURRENT_QUARTER_INDEX])]}')
     print('Xếp hạng giá trị hành động không đầu tư của 2 công thức: ', player_state[P_ID_NOT_INVEST_CT1], player_state[P_ID_NOT_INVEST_CT2])
     print('Xếp hạng lợi nhuận 20 công ty hàng đầu của CT1 tại quý trước: ', player_state[P_IN4_CT2-TOP_COMP_PER_QUARTER : P_IN4_CT2])
     print('Xếp hạng lợi nhuận 20 công ty hàng đầu của CT2 tại quý trước:: ', player_state[P_GMEAN_P1-TOP_COMP_PER_QUARTER : P_GMEAN_P1])
