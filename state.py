@@ -303,6 +303,19 @@ def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_CO
     # print(env_state[HISTORY_AGENT_INDEX:])
     return result, per_file
 
+@nb.njit()
+def amount_action():
+    return  3
+
+@nb.njit()
+def get_list_action(state):
+    return np.full(amount_action(), 1)
+
+@nb.njit()
+def amount_state():
+    return 965
+
+
 def normal_main(agent_player, times, per_file):
     global data_full, data_arr, LIST_ALL_COMP_PER_QUARTER
     count = np.zeros(2)
