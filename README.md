@@ -5,10 +5,11 @@ action: - 0 là không đầu tư
         - 1 là đầu tư theo công ty trả ra ở công thức 1
         - 2 là đầu tư theo công ty trả ra ở công thức 2
 player_state:
-        - 480 vị trí đầu là top 20 công thức của 24 quý gần nhất của công thức 1, các quý càng ở vị trí cuối là càng gần với thời điểm xét
-        - 480 vị trí tiếp là top 20 công thức của 24 quý gần nhất của công thức 2, các quý càng ở vị trí cuối là càng gần với thời điểm xét
-        - 2 vị trí tiếp theo là gmean của thứ hạng được đánh giá của hành động trong mỗi turn của 2 người chơi(dải giá trị từ (1/3 - 1)). Đánh giá của bot nằm ở trước.
-        -2 vị trí kế tiếp là rank kết quả công thức ứng với giá trị không đầu tư được trả ra từ 2 công thức tại thời điểm được xét
+        - 480 vị trí đầu (0-479) là top 20 công thức của 24 quý gần nhất của công thức 1, các quý càng ở vị trí cuối là càng gần với thời điểm xét
+        - 480 vị trí tiếp (480-959) là top 20 công thức của 24 quý gần nhất của công thức 2, các quý càng ở vị trí cuối là càng gần với thời điểm xét
+        - 2 vị trí tiếp theo (960-961) là gmean của thứ hạng được đánh giá của hành động trong mỗi turn của 2 người chơi(dải giá trị từ (1/3 - 1)). Đánh giá của bot nằm ở trước.
+        -2 vị trí kế tiếp (962-963) là rank kết quả công thức ứng với giá trị không đầu tư được trả ra từ 2 công thức tại thời điểm được xét
+        - vị trí cuối cùng (964) là tổng số cty (bao gồm cả NOT_INVEST) tại thời điểm đầu tư
 
 env_state:
         - 2*ALL_QUARTER*TOP_COMP_PER_QUARTER vị trí đầu tiên (hiện tại là 2*1240) là rank profit của TOP_COMP_PER_QUARTER trong từng thời điểm của 2 công thức, ALL_QUARTER*TOP_COMP_PER_QUARTER vị trí đầu tiên là của công thức 1
