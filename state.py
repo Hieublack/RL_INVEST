@@ -1,3 +1,4 @@
+import re
 from tkinter import ALL
 import pandas as pd
 import math
@@ -246,11 +247,18 @@ def step(action, env_state, ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
     if result_quarter == 0:
         # print('toang',action,  env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER+IN4_CT2_INDEX)], np.min(LIST_RANK_CT2))
         raise Exception('toang action')
+    # print(action, result_quarter, env_state[NUMBER_COMP_INDEX])
+    '''
+    nếu xét action theo hạng của action
     rank_3_action = np.array([LIST_RANK_NOT_INVEST[int(env_state[CURRENT_QUARTER_INDEX])], env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER)], env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER+IN4_CT2_INDEX)]])
     rank_3_action = np.sort(rank_3_action)
     top_action = np.where(rank_3_action == result_quarter)[0][0] + 1
-    # print('quarter', int(env_state[CURRENT_QUARTER_INDEX]),'check', 1/top_action, 'action', action, 'topaction',rank_3_action)
+    print('quarter', int(env_state[CURRENT_QUARTER_INDEX]),'check', 1/top_action, 'action', action, 'topaction',rank_3_action)
     env_state[int(HISTORY_AGENT_INDEX + ALL_QUARTER*id_action +env_state[CURRENT_QUARTER_INDEX])] = (4-top_action)/3
+    '''
+    #nếu xét rank_profit/number_company
+    result_action = result_quarter/env_state[NUMBER_COMP_INDEX]
+    env_state[int(HISTORY_AGENT_INDEX + ALL_QUARTER*id_action +env_state[CURRENT_QUARTER_INDEX])] = result_action
     if env_state[ID_ACTION_INDEX] == 1:
         env_state[CURRENT_QUARTER_INDEX] += 1  
         #rank giá trị công thức của việc không đầu tư
