@@ -272,6 +272,7 @@ def step(action, env_state, ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
 
     return env_state
 
+# @nb.njit()
 def action_player(env_state, list_player, temp_file, per_file):
     player_state = state_to_player(env_state)
     current_player = int(env_state[ID_ACTION_INDEX])
@@ -284,8 +285,11 @@ def action_player(env_state, list_player, temp_file, per_file):
 def check_winner(env_state):
     agent_history = env_state[HISTORY_AGENT_INDEX : HISTORY_AGENT_INDEX+ALL_QUARTER]
     sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX : HISTORY_SYS_BOT_INDEX+ALL_QUARTER]
-    np.exp(np.mean(np.log(sys_bot_history)))
-    if np.exp(np.mean(np.log(agent_history))) > np.exp(np.mean(np.log(sys_bot_history))): return 0
+    # agent_result = np.exp(np.mean(np.log(agent_history)))
+    # sys_result = np.exp(np.mean(np.log(sys_bot_history)))
+    agent_result = len(agent_history)/np.sum(1/agent_history)
+    sys_result =  len(sys_bot_history)/np.sum(1/sys_bot_history)
+    if agent_result > sys_result: return 0
     else: return 1
 
 @nb.njit()
@@ -295,7 +299,7 @@ def check_victory(player_state):
         else: return 0
     else: return -1
 
-def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER):
+def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER, list_all_result):
     ALL_IN4_SYS = np.array([LIST_RANK_NOT_INVEST, np.zeros(ALL_QUARTER), np.zeros(ALL_QUARTER)])
     env_state, ALL_IN4_SYS = reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER)
     count_turn = 0
@@ -308,6 +312,13 @@ def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_CO
         action, temp_file, per_file = action_player(env_state,list_player,temp_file, per_file)
         env_state[ID_ACTION_INDEX] = (env_state[ID_ACTION_INDEX] + 1)%len(list_player)
     result = check_winner(env_state)
+    agent_history = env_state[HISTORY_AGENT_INDEX : HISTORY_AGENT_INDEX+ALL_QUARTER]
+    sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX : HISTORY_SYS_BOT_INDEX+ALL_QUARTER]
+    agent_result = len(agent_history)/np.sum(1/agent_history)
+    sys_result =  len(sys_bot_history)/np.sum(1/sys_bot_history)
+    list_all_result[0].append(agent_result)
+    list_all_result[1].append(sys_result)
+
     # print(env_state[HISTORY_AGENT_INDEX:])
     return result, per_file
 
@@ -336,15 +347,18 @@ def normal_main(agent_player, times, per_file):
     LIST_ALL_COMP_PER_QUARTER.append(LIST_ALL_COMP_PER_QUARTER[-1])
     LIST_ALL_COMP_PER_QUARTER = np.array(LIST_ALL_COMP_PER_QUARTER)
 
+    list_all_result = [[], []]
     for van in range(times):
         temp_file = [[0],[0]]
         # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
         # list_fomula = all_fomula[shuffle]
-        winner, file_per = one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER)
+        winner, file_per = one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER, list_all_result)
         if winner == 0:
             count[0] += 1
         else:
             count[1] += 1
+    # print(list_all_result)
+    print(f'Average agent and system: {np.average(list_all_result[0])} {np.average(list_all_result[1])}')
     return count, file_per
 
 def player_random1(player_state, temp_file, per_file):
