@@ -222,11 +222,16 @@ def state_to_player(env_state):
     sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX : HISTORY_SYS_BOT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
     if env_state[CHECK_END_INDEX] == 1:
         if id_action == 0:
-            player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(agent_history)))
-            player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(sys_bot_history)))
+            # player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(agent_history)))
+            # player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(sys_bot_history)))
+            player_state[P_GMEAN_P1] = len(agent_history)/np.sum(1/agent_history)
+            player_state[P_GMEAN_P2] = len(sys_bot_history)/np.sum(1/sys_bot_history)
         else:
-            player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(sys_bot_history)))
-            player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(agent_history)))
+            # player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(sys_bot_history)))
+            # player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(agent_history)))
+            player_state[P_GMEAN_P1] = len(sys_bot_history)/np.sum(1/sys_bot_history)
+            player_state[P_GMEAN_P2] = len(agent_history)/np.sum(1/agent_history)
+        # print(player_state[P_GMEAN_P1], player_state[P_GMEAN_P2])
     player_state[P_NUMBER_COMP_INDEX] = env_state[NUMBER_COMP_INDEX]
     return player_state
 
@@ -289,6 +294,7 @@ def check_winner(env_state):
     # sys_result = np.exp(np.mean(np.log(sys_bot_history)))
     agent_result = len(agent_history)/np.sum(1/agent_history)
     sys_result =  len(sys_bot_history)/np.sum(1/sys_bot_history)
+    # print(agent_result, sys_result)
     if agent_result > sys_result: return 0
     else: return 1
 
@@ -316,6 +322,9 @@ def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_CO
     sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX : HISTORY_SYS_BOT_INDEX+ALL_QUARTER]
     agent_result = len(agent_history)/np.sum(1/agent_history)
     sys_result =  len(sys_bot_history)/np.sum(1/sys_bot_history)
+    
+    # agent_result = np.exp(np.mean(np.log(agent_history)))
+    # sys_result = np.exp(np.mean(np.log(sys_bot_history)))
     list_all_result[0].append(agent_result)
     list_all_result[1].append(sys_result)
 
