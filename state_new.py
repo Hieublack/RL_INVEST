@@ -147,7 +147,7 @@ def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
     id_action = 0
     check_end_game = 0
     history_agent = np.zeros(ALL_QUARTER*3)
-    number_comp = LIST_ALL_COMP_PER_QUARTER[0]
+    number_comp = LIST_ALL_COMP_PER_QUARTER[current_quarter]
     rank_not_invest = ALL_IN4_SYS[0][0]
     # LIST_RANK_CT1, LIST_PROFIT_CT1 = get_in4_fomula(list_fomula[0])
     # LIST_RANK_CT2, LIST_PROFIT_CT2 = get_in4_fomula(list_fomula[1])
@@ -289,7 +289,7 @@ def step(action, env_state, ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
 def action_player(env_state, list_player, temp_file, per_file):
     player_state = state_to_player(env_state)
     current_player = int(env_state[ID_ACTION_INDEX])
-    played_move,temp_file,per_file = list_player[current_player](player_state, temp_file, per_file)
+    played_move,temp_file[current_player],per_file = list_player[current_player](player_state, temp_file[current_player], per_file)
     if played_move not in [0, 1, 2]:
         raise Exception('Action false')
     return played_move,temp_file, per_file
@@ -353,7 +353,7 @@ def get_list_action(state):
 
 @nb.njit()
 def amount_state():
-    return 965
+    return 966
 
 
 def normal_main(agent_player, times, per_file):

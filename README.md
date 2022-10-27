@@ -1,7 +1,7 @@
 # RL_INVEST
  system for agent choose fomula
 
-#state.py
+# state.py
 action: - 0 là không đầu tư
         - 1 là đầu tư theo công ty trả ra ở công thức 1
         - 2 là đầu tư theo công ty trả ra ở công thức 2
@@ -27,7 +27,7 @@ cách sinh công thức:
         bắt đầu từ cột Market_Cap đến hết có id lần lượt là 0 -> number_variable 
 
 
-#state_new.py
+# state_new.py
 action: - 0 là không đầu tư
         - 1 là đầu tư theo công ty trả ra ở công thức 1
         - 2 là đầu tư theo công ty trả ra ở công thức 2
@@ -39,17 +39,30 @@ player_state:
         -2 vị trí kế tiếp (963-964) là rank kết quả công thức ứng với giá trị không đầu tư được trả ra từ 2 công thức tại thời điểm được xét
         - vị trí cuối cùng (965) là tổng số cty (bao gồm cả NOT_INVEST) tại thời điểm đầu tư
 
-env_state:
+# env_state:
         - 2*ALL_QUARTER*TOP_COMP_PER_QUARTER vị trí đầu tiên (hiện tại là 2*1240) là rank profit của TOP_COMP_PER_QUARTER trong từng thời điểm của 2 công thức, ALL_QUARTER*TOP_COMP_PER_QUARTER vị trí đầu tiên là của công thức 1
         - 2*ALL_QUARTER vị trí tiếp theo là kết quả đánh giá action của agent và bot hệ thống, ALL_QUARTER vị trí đầu là của agent.
         - 2 vị trí kế tiếp là rank kết quả công thức ứng với giá trị không đầu tư được trả ra từ 2 công thức tại thời điểm được xét
         - 5 giá trị cuối là: thời điểm đang xét, id_action, check hết game, tổng số cty quý hiện tại, rank theo lợi nhuận của ko đầu tư quý trước
 
-cách sinh công thức:
+# cách sinh công thức:
         - sinh dấu của toán hạng con (0 là subtract, 1 là add)
         - với toán hạng con: 
                 - sinh tập hợp biến ở tử số
                 - sinh tập hợp biến ở mẫu số, sau đó thêm vào tập hợp số lượng biến A theo cách sinh bậc
         -id trong công thức:
         bắt đầu từ cột Market_Cap đến hết có id lần lượt là 0 -> number_variable 
+
+# state_NA_ifelse.py:
+action: - 0 là không đầu tư
+        - 1 là đầu tư theo công ty trả ra ở công thức 1
+        - 2 là đầu tư theo công ty trả ra ở công thức 2
+player_state:
+        -20 vị trí đầu (0-19) là top 20 công cty của quý gần nhất của công thức 1
+        -20 vị trí tiếp (20-39) là top 20 công thức của quý gần nhất của công thức 2
+        -2 vị trí tiếp theo (40-41) là gmean của thứ hạng được đánh giá của hành động trong mỗi turn của 2 người chơi. Giá trị ở 40 là của player hiện tại
+        - vị trị 42 là rank của action k đầu tư ở quý trước
+        - vị trí (43-44) là tỉ lệ rank lợi nhuận của công thức 1 và công thức 2 với action ko đầu tư ở quý gần nhất
+        - vị trí (45-46) là rank theo value của action ko đầu tư theo công thức 1 và 2 ở quý hiện tại
+        - vị trí (47-48) là số công ty ở quý gần nhất và quý hiện tại
 

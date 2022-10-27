@@ -281,7 +281,7 @@ def step(action, env_state, ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
 def action_player(env_state, list_player, temp_file, per_file):
     player_state = state_to_player(env_state)
     current_player = int(env_state[ID_ACTION_INDEX])
-    played_move,temp_file,per_file = list_player[current_player](player_state, temp_file, per_file)
+    played_move,temp_file[current_player],per_file = list_player[current_player](player_state, temp_file[current_player], per_file)
     if played_move not in [0, 1, 2]:
         raise Exception('Action false')
     return played_move,temp_file, per_file
