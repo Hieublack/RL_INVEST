@@ -1,4 +1,3 @@
-from tkinter import RADIOBUTTON
 import pandas as pd
 import math
 import numpy as np
@@ -96,10 +95,10 @@ def get_in4_fomula(result_fomula, list_rank_not_invest_temp, ALL_IN4_SYS):
     return list_top_comp, list_rank_not_invest_temp, 1
 
 IN4_CT1_INDEX = 0
-IN4_CT2_INDEX = IN4_CT1_INDEX + ALL_QUARTER*TOP_COMP_PER_QUARTER
+IN4_CT2_INDEX = ALL_QUARTER*TOP_COMP_PER_QUARTER
 HISTORY_AGENT_INDEX= IN4_CT2_INDEX + ALL_QUARTER*TOP_COMP_PER_QUARTER
-# HISTORY_SYS_BOT_INDEX = HISTORY_AGENT_INDEX + ALL_QUARTER
-HISTORY_PROFIT_AGENT = HISTORY_AGENT_INDEX + ALL_QUARTER
+HISTORY_SYS_BOT_INDEX = HISTORY_AGENT_INDEX + ALL_QUARTER
+HISTORY_PROFIT_AGENT = HISTORY_SYS_BOT_INDEX + ALL_QUARTER
 ID_NOT_INVEST_CT1 = HISTORY_PROFIT_AGENT + ALL_QUARTER
 ID_NOT_INVEST_CT2 = ID_NOT_INVEST_CT1 + 1
 CURRENT_QUARTER_INDEX = ID_NOT_INVEST_CT2 + 1
@@ -110,7 +109,6 @@ NUMBER_COMP_CURENT_INDEX = NUMBER_COMP_LAST_INDEX + 1
 RANK_NOT_INVEST = NUMBER_COMP_CURENT_INDEX + 1
 RATIO_CT1_NOT_INVEST = RANK_NOT_INVEST + 1
 RATIO_CT2_NOT_INVEST = RATIO_CT1_NOT_INVEST + 1
-RATIO_TO_WIN = RATIO_CT2_NOT_INVEST + 1
 
 P_IN4_CT1 = 0
 P_IN4_CT2 = P_IN4_CT1 + TOP_COMP_PER_QUARTER*NUMBER_QUARTER_HISTORY
@@ -125,7 +123,7 @@ P_NUMBER_COMP_LAST_INDEX = P_ID_NOT_INVEST_CT2+ 1
 P_NUMBER_COMP_CURRENT_INDEX = P_NUMBER_COMP_LAST_INDEX + 1
 
 # @nb.njit()
-def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER, ratio_win):
+def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
     # global LIST_RANK_CT1, LIST_RANK_CT2, LIST_PROFIT_CT2, LIST_RANK_NOT_INVEST_CT1, LIST_RANK_NOT_INVEST_CT2
     '''
     Hàm này trả ra 2 công thức và list top20 comp qua từng quý của công thức và các thông tin cần thiết khác
@@ -142,12 +140,13 @@ def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER, ratio_win):
         if count_fomula == 1 and check == 1:
             LIST_RANK_CT1 = temp.copy()
             ALL_IN4_SYS[1] = LIST_RANK_NOT_INVEST_TEMP.copy() 
+            # list_fomula.append(fomula)
         elif count_fomula == 2 and check == 1:
             LIST_RANK_CT2 = temp.copy()
             ALL_IN4_SYS[2] = LIST_RANK_NOT_INVEST_TEMP.copy() 
+            # list_fomula.append(fomula)
 
-    # history_agent = np.zeros(ALL_QUARTER*3)
-    history_agent = np.zeros(ALL_QUARTER*2)
+    history_agent = np.zeros(ALL_QUARTER*3)
     id_not_invest_ct1 = ALL_IN4_SYS[1][0]
     id_not_invest_ct2 = ALL_IN4_SYS[2][0]
     current_quarter = 1
@@ -164,7 +163,7 @@ def reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER, ratio_win):
                          current_quarter, id_action, check_end_game,
                           number_comp_last,number_comp_current , 
                           rank_not_invest, ratio_ct1_not_invest, 
-                          ratio_ct2_not_invest, ratio_win])))       #bổ sung ratio_win vào 2h40 pm 28/10/2022
+                          ratio_ct2_not_invest])))
     return env_state, ALL_IN4_SYS
 
 @nb.njit()
@@ -234,12 +233,21 @@ def state_to_player(env_state):
             history_ct2 = np.append(a, history_ct2)
         player_state[P_IN4_CT1:P_IN4_CT2] = history_ct1
         player_state[P_IN4_CT2:P_GMEAN_P1] = history_ct2
+    # agent_history = env_state[HISTORY_AGENT_INDEX + STAER_QUARTER: HISTORY_AGENT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
+    # sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX + STAER_QUARTER: HISTORY_SYS_BOT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
     if env_state[CHECK_END_INDEX] == 1:
         agent_history = env_state[HISTORY_AGENT_INDEX + START_QUARTER: HISTORY_AGENT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
-        # sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX + START_QUARTER: HISTORY_SYS_BOT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
-        player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(agent_history)))
-        player_state[P_GMEAN_P2] = env_state[RATIO_TO_WIN]
+        sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX + START_QUARTER: HISTORY_SYS_BOT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
+        if id_action == 0:
+            player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(agent_history)))
+            player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(sys_bot_history)))
             # player_state[P_GMEAN_P1] = len(agent_history)/np.sum(1/agent_history)
+            # player_state[P_GMEAN_P2] = len(sys_bot_history)/np.sum(1/sys_bot_history)
+        else:
+            player_state[P_GMEAN_P1] = np.exp(np.mean(np.log(sys_bot_history)))
+            player_state[P_GMEAN_P2] = np.exp(np.mean(np.log(agent_history)))
+            # player_state[P_GMEAN_P1] = len(sys_bot_history)/np.sum(1/sys_bot_history)
+            # player_state[P_GMEAN_P2] = len(agent_history)/np.sum(1/agent_history)
         # print(player_state[P_GMEAN_P1], player_state[P_GMEAN_P2])
     player_state[P_RANK_NOT_INVEST] = env_state[RANK_NOT_INVEST]
     player_state[P_RATIO_CT1_NOT_INVEST] = env_state[RATIO_CT1_NOT_INVEST]
@@ -279,16 +287,19 @@ def step(action, env_state, ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
     env_state[int(HISTORY_AGENT_INDEX + ALL_QUARTER*id_action +env_state[CURRENT_QUARTER_INDEX])] = result_action
     env_state[RATIO_CT1_NOT_INVEST] = env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER)] / ALL_IN4_SYS[0][int(env_state[CURRENT_QUARTER_INDEX])]
     env_state[RATIO_CT2_NOT_INVEST] = env_state[int(env_state[CURRENT_QUARTER_INDEX]*TOP_COMP_PER_QUARTER+IN4_CT2_INDEX)]/ALL_IN4_SYS[0][int(env_state[CURRENT_QUARTER_INDEX])]
-    env_state[CURRENT_QUARTER_INDEX] += 1  
-    #rank giá trị công thức của việc không đầu tư
-    if env_state[CURRENT_QUARTER_INDEX] < ALL_QUARTER:
-        env_state[RANK_NOT_INVEST] = ALL_IN4_SYS[0][int(env_state[CURRENT_QUARTER_INDEX] - 1)]
-        env_state[ID_NOT_INVEST_CT1] = ALL_IN4_SYS[1][int(env_state[CURRENT_QUARTER_INDEX])]
-        env_state[ID_NOT_INVEST_CT2] = ALL_IN4_SYS[2][int(env_state[CURRENT_QUARTER_INDEX])]
-    env_state[NUMBER_COMP_CURENT_INDEX] = LIST_ALL_COMP_PER_QUARTER[int(env_state[CURRENT_QUARTER_INDEX])]
-    env_state[NUMBER_COMP_LAST_INDEX] = LIST_ALL_COMP_PER_QUARTER[int(env_state[CURRENT_QUARTER_INDEX])-1]
-    print('check: ', env_state[NUMBER_COMP_CURENT_INDEX], env_state[NUMBER_COMP_LAST_INDEX])
-    print('step', env_state[-10:], env_state[ID_ACTION_INDEX], env_state[CURRENT_QUARTER_INDEX])
+    if env_state[ID_ACTION_INDEX] == 1:
+        env_state[CURRENT_QUARTER_INDEX] += 1  
+        #rank giá trị công thức của việc không đầu tư
+        if env_state[CURRENT_QUARTER_INDEX] < ALL_QUARTER:
+            env_state[RANK_NOT_INVEST] = ALL_IN4_SYS[0][int(env_state[CURRENT_QUARTER_INDEX] - 1)]
+            env_state[ID_NOT_INVEST_CT1] = ALL_IN4_SYS[1][int(env_state[CURRENT_QUARTER_INDEX])]
+            env_state[ID_NOT_INVEST_CT2] = ALL_IN4_SYS[2][int(env_state[CURRENT_QUARTER_INDEX])]
+        env_state[NUMBER_COMP_CURENT_INDEX] = LIST_ALL_COMP_PER_QUARTER[int(env_state[CURRENT_QUARTER_INDEX])]
+        env_state[NUMBER_COMP_LAST_INDEX] = LIST_ALL_COMP_PER_QUARTER[int(env_state[CURRENT_QUARTER_INDEX])-1]
+        env_state[ID_ACTION_INDEX] = 0
+    else:
+        env_state[ID_ACTION_INDEX] = 1
+    # print('step', env_state[-10:], env_state[ID_ACTION_INDEX], env_state[CURRENT_QUARTER_INDEX])
 
     return env_state
 
@@ -303,9 +314,15 @@ def action_player(env_state, list_player, temp_file, per_file):
     
 @nb.njit()
 def check_winner(env_state):
+    # agent_history = env_state[HISTORY_AGENT_INDEX : HISTORY_AGENT_INDEX+ALL_QUARTER]
+    # sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX : HISTORY_SYS_BOT_INDEX+ALL_QUARTER]
     agent_history = env_state[HISTORY_AGENT_INDEX + START_QUARTER: HISTORY_AGENT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
+    sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX + START_QUARTER: HISTORY_SYS_BOT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
     agent_result = np.exp(np.mean(np.log(agent_history)))
-    sys_result = env_state[RATIO_TO_WIN]
+    sys_result = np.exp(np.mean(np.log(sys_bot_history)))
+    # agent_result = len(agent_history)/np.sum(1/agent_history)
+    # sys_result =  len(sys_bot_history)/np.sum(1/sys_bot_history)
+    # print(agent_result, sys_result)
     if agent_result > sys_result: return 0
     else: return 1
 
@@ -316,9 +333,9 @@ def check_victory(player_state):
         else: return 0
     else: return -1
 
-def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER, list_all_result, ratio_win):
+def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER, list_all_result):
     ALL_IN4_SYS = np.array([LIST_RANK_NOT_INVEST, np.zeros(ALL_QUARTER), np.zeros(ALL_QUARTER)])
-    env_state, ALL_IN4_SYS = reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER, ratio_win)
+    env_state, ALL_IN4_SYS = reset(ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER)
     # print('one',env_state[-10:], env_state[ID_ACTION_INDEX], env_state[CURRENT_QUARTER_INDEX])
     count_turn = 0
     while env_state[CURRENT_QUARTER_INDEX] < ALL_QUARTER:
@@ -331,9 +348,17 @@ def one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_CO
         env_state[ID_ACTION_INDEX] = (env_state[ID_ACTION_INDEX] + 1)%len(list_player)
     result = check_winner(env_state)
     agent_history = env_state[HISTORY_AGENT_INDEX + START_QUARTER: HISTORY_AGENT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
+    sys_bot_history = env_state[HISTORY_SYS_BOT_INDEX + START_QUARTER: HISTORY_SYS_BOT_INDEX+ALL_QUARTER][:int(env_state[CURRENT_QUARTER_INDEX])]
+    # print(START_QUARTER)
+    # agent_result = len(agent_history)/np.sum(1/agent_history)
+    # sys_result =  len(sys_bot_history)/np.sum(1/sys_bot_history)
+    
     agent_result = np.exp(np.mean(np.log(agent_history)))
+    sys_result = np.exp(np.mean(np.log(sys_bot_history)))
     list_all_result[0].append(agent_result)
+    list_all_result[1].append(sys_result)
 
+    # print(env_state[HISTORY_AGENT_INDEX:])
     return result, per_file
 
 @nb.njit()
@@ -349,11 +374,11 @@ def amount_state():
     return 49
 
 
-def normal_main(agent_player, times, per_file, ratio_win):
+def normal_main(agent_player, times, per_file):
     global data_full, data_arr, LIST_ALL_COMP_PER_QUARTER
     count = np.zeros(2)
     # all_id_fomula = np.arange(len(all_fomula))
-    list_player = [agent_player]
+    list_player = [agent_player, player_random]
     LIST_RANK_NOT_INVEST = get_rank_not_invest()
     LIST_ALL_COMP_PER_QUARTER = []
     for j in range(len(index_test)-1, 0, -1):
@@ -366,12 +391,12 @@ def normal_main(agent_player, times, per_file, ratio_win):
         temp_file = [[0],[0]]
         # shuffle = np.random.choice(all_id_fomula, 2, replace=False)
         # list_fomula = all_fomula[shuffle]
-        winner, file_per = one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER, list_all_result, ratio_win)
+        winner, file_per = one_game(list_player, temp_file, per_file, LIST_RANK_NOT_INVEST, LIST_ALL_COMP_PER_QUARTER, list_all_result)
         if winner == 0:
             count[0] += 1
         else:
             count[1] += 1
-    print(list_all_result)
+    # print(list_all_result)
     print(f'Average agent and system: {np.average(list_all_result[0])} {np.average(list_all_result[1])}')
     return count, file_per
 
