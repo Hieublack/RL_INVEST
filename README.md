@@ -62,7 +62,8 @@ player_state:
         -20 vị trí tiếp (20-39) là top 20 công thức của quý gần nhất của công thức 2
         -2 vị trí tiếp theo (40-41) là gmean của thứ hạng được đánh giá của hành động trong mỗi turn của 2 người chơi. Giá trị ở 40 là của player hiện tại
         - vị trị 42 là rank của action k đầu tư ở quý trước
-        - vị trí (43-44) là tỉ lệ rank lợi nhuận của công thức 1 và công thức 2 với action ko đầu tư ở quý gần nhất
+        - vị trí 43 là tỉ lệ rank lợi nhuận của công thức 1 với rank lợi nhuận action ko đầu tư ở quý gần nhất
+        - vị trí 44 là tỉ lệ rank lợi nhuận của công thức 2 với rank lợi nhuận action ko đầu tư ở quý gần nhất
         - vị trí (45-46) là rank theo value của action ko đầu tư theo công thức 1 và 2 ở quý hiện tại
         - vị trí (47-48) là số công ty ở quý gần nhất và quý hiện tại
 
