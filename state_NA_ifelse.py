@@ -287,8 +287,8 @@ def step(action, env_state, ALL_IN4_SYS, LIST_ALL_COMP_PER_QUARTER):
         env_state[ID_NOT_INVEST_CT2] = ALL_IN4_SYS[2][int(env_state[CURRENT_QUARTER_INDEX])]
     env_state[NUMBER_COMP_CURENT_INDEX] = LIST_ALL_COMP_PER_QUARTER[int(env_state[CURRENT_QUARTER_INDEX])]
     env_state[NUMBER_COMP_LAST_INDEX] = LIST_ALL_COMP_PER_QUARTER[int(env_state[CURRENT_QUARTER_INDEX])-1]
-    print('check: ', env_state[NUMBER_COMP_CURENT_INDEX], env_state[NUMBER_COMP_LAST_INDEX])
-    print('step', env_state[-10:], env_state[ID_ACTION_INDEX], env_state[CURRENT_QUARTER_INDEX])
+    # print('check: ', env_state[NUMBER_COMP_CURENT_INDEX], env_state[NUMBER_COMP_LAST_INDEX])
+    # print('step', env_state[-10:], env_state[ID_ACTION_INDEX], env_state[CURRENT_QUARTER_INDEX])
 
     return env_state
 
@@ -379,8 +379,8 @@ def player_random1(player_state, temp_file, per_file):
     list_action = np.array([0,1,2])
     action = int(np.random.choice(list_action))
     check = check_victory(player_state)
-    if check == 1:
-        print(player_state[-20:])
+    # if check == 1:
+    #     print(player_state[-20:])
     return action, temp_file, per_file
 
 def player_random(player_state, temp_file, per_file):
